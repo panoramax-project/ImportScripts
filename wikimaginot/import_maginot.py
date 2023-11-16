@@ -1,14 +1,13 @@
 import argparse
-import certifi
 import csv
 import os
-import pycurl
 import requests
-import urllib3
-import wget
-from io import BytesIO
 from pathlib import Path
 
+# dossiers
+s_stockage = "files"
+s_dossier_ign = "IGN"
+s_dossier_osm = "OSM"
 
 def gestion_date(date:str, chemin:str) -> str:
     ret = "1970-01-01T00:00:00.00Z"
@@ -26,19 +25,16 @@ def gestion_date(date:str, chemin:str) -> str:
 
     return ret
 
-
 if __name__ == "__main__":
     # on commence par récupérer les arguments :
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", help="Indique le fichier d'import des photos de wikimaginot.eu (obligatoire)", type=str, required=True)
     args = parser.parse_args()
 
-
     s_root = os.getcwd () + "/"
     print(f"dossier courant  : {s_root}")
-    s_local_files = s_root + "files/"
+    s_local_files = s_root + s_stockage + "/"
 
-    #s_fichier_csv = s_root + "fic_test1.csv"
     s_fichier_csv = s_root + args.file
     print(f"fichier d'import : {s_fichier_csv}")
     print(f"dossier d'import : {s_local_files}")
@@ -51,15 +47,16 @@ if __name__ == "__main__":
             # Num_photo;Lat;Lon;Titre;Sujet;Auteur;Licence;Date_photo;Url_photo;Url_site
             # 93407;48.932294;7.951462;"HOFFEN - (Abri)";;"wikimaginot - Gregory Fuchs";CC-BY-SA;07/06/2019;https://files-wikimaginot.eu/_documents/2021-03/_wiki_photos_redim/63-1616490496.jpg;https://wikimaginot.eu/V70_construction_detail.php?id=10961
 
+            # num photo
             s_num = row['Num_photo']
             # vérif licence
             if row['Licence'] not in ['Domaine public','CC-O','CC-BY','CC-BY-SA']:
                 print(f"erreur, Licence vide pour {s_num} !")
                 continue
             if row['Licence'] in ['Domaine public','CC-O']:
-                s_dossier = "IGN"
+                s_dossier = s_dossier_ign
             else:
-                s_dossier = "OSM"
+                s_dossier = s_dossier_osm
             # vérif id
             s_id = ""
             if "?id=" in row['Url_site']:
@@ -95,7 +92,6 @@ if __name__ == "__main__":
                 s_auteur = row['Auteur']
             # vérif date
             s_raw_date = row['Date_photo']
-            # s_date = s_raw_date
             s_date = gestion_date(s_raw_date, s_url)
 
             # photo
@@ -108,14 +104,8 @@ if __name__ == "__main__":
             # récapitulatif :
             #print(f"{row['Licence']}, {s_dossier}, {s_id}, {s_name_photo}, {s_local_photo}")
             #print(f"titre : {row['Titre']}")
-            #print(f"date : {s_date}")
-            # nom_file;lat;lon;capture_time;Exif.Image.Artist;Xmp.xmp.BaseURL
+            ## nom_file;lat;lon;capture_time;Exif.Image.Artist;Xmp.xmp.BaseURL
             print(f"csv : {s_name_photo}, {row['Lat']}, {row['Lon']}, {s_date}, {s_auteur}, {row['Url_site']}")
-
-            # écriture du _geovisio.csv
-            with open(s_local_dossier + '_geovisio.csv', 'a', newline='') as csvfile:
-                o_writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
-                o_writer.writerow([s_name_photo, row['Lat'], row['Lon'], s_date, s_auteur, row['Url_site']])
 
             # écriture du titre.txt
             s_fichier_titre = s_local_dossier + 'titre.txt'
@@ -123,67 +113,23 @@ if __name__ == "__main__":
                 with open(s_fichier_titre, 'w', encoding='utf-8') as titre_file:
                     titre_file.write(row['Titre'])
 
-
+            # téléchargement de la photo
             print(f"download {s_url} ...")
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'}
+            with requests.get(url=s_url, headers=headers, verify=True, allow_redirects=True, stream=True) as request:
+               if request.status_code == 200:
+                   # On ouvre le fichier de sortie
+                   with open(s_local_photo, 'wb') as file:
+                       # On écrit le contenu dedans
+                       file.write(request.content)
+               else:
+                  print(f"erreur http pour {s_num}, code retour = {request.status_code}, {request.text}")
+                  continue
 
-            ## Create a Curl object
-            #c = pycurl.Curl()
-            #c.setopt(pycurl.CAINFO, certifi.where())
-            ## set proxy-insecure
-            #c.setopt(c.PROXY_SSL_VERIFYHOST, 0)
-            #c.setopt(c.PROXY_SSL_VERIFYPEER, 0)
-            ## set headers
-            #c.setopt(pycurl.USERAGENT, 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:8.0) Gecko/20100101 Firefox/8.0')
-            ## set proxy
-            #c.setopt(pycurl.PROXY, "http://proxy.ign.fr:3128")
-            ## proxy auth
-            ##c.setopt(pycurl.PROXYUSERPWD, "")
-            ## set proxy type = "HTTPS"
-            #c.setopt(pycurl.PROXYTYPE, 2)
-            ## Set the URL
-            #c.setopt(pycurl.URL, s_url)
-            ## Create a BytesIO object to store the downloaded data
-            #buffer = BytesIO()
-            #c.setopt(pycurl.WRITEDATA, buffer)
-            ## Perform the request
-            #c.perform()
-            ## alain -> pycurl.error: (35, 'gnutls_handshake() failed: An unexpected TLS packet was received.')
-            ## Check if the request was successful (HTTP status code 200)
-            #http_code = c.getinfo(pycurl.HTTP_CODE)
-            #print(f"code retour dl : {http_code}")
-            #if http_code == 200:
-            #    # Save the downloaded data to a file
-            #    with open(s_local_photo, 'wb') as f:
-            #        f.write(buffer.getvalue())
-            ## Close the Curl object
-            #c.close()
-
-            #url = f'{api}/../schema/api/dpsg/post/examples/{file}.json'
-            #r = requests.get(url)
-            #if r.status_code == 200:
-            #    data: dict[str, Any] = r.json()
-            #    return data
-
-            # proxies = { "https":"http://proxy.ign.fr:3128", "http":"http://proxy.ign.fr:3128" }
-            # export HTTPS_PROXY='http://proxy.ign.fr:3128'
-            # export HTTP_PROXY='http://proxy.ign.fr:3128'
-
-            #headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'}
-            #with requests.get(url=s_url, headers=headers, verify=True, allow_redirects=True, stream=True) as request:
-            #    # print(f"code retour = {request.status_code}")
-            #    if request.status_code == 200:
-            #        # On ouvre le fichier de sortie
-            #        with open(s_local_photo, 'wb') as file:
-            #            # On écrit le contenu dedans
-            #            file.write(request.content)
-            #    else:
-            #       print(f"erreur http, code retour = {request.status_code} {request.text}")
-
-            #with http.request("GET", s_url) as resp:
-            #    print(f"statut : {resp.status}")
-
-            #file_name = wget.download(s_url)
-            #print(file_name)
+            # écriture du _geovisio.csv
+            with open(s_local_dossier + '_geovisio.csv', 'a', newline='') as csvfile:
+                o_writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+                o_writer.writerow([s_name_photo, row['Lat'], row['Lon'], s_date, s_auteur, row['Url_site']])
 
             # on saute une ligne et on passe à la photo suivante
             print("")
