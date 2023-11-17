@@ -1,13 +1,9 @@
 import argparse
 import csv
+import glob
 import os
 import requests
 from pathlib import Path
-
-# dossiers
-s_stockage = "files"
-s_dossier_ign = "IGN"
-s_dossier_osm = "OSM"
 
 def gestion_date(date:str, chemin:str) -> str:
     ret = "1970-01-01T00:00:00.00Z"
@@ -24,6 +20,12 @@ def gestion_date(date:str, chemin:str) -> str:
         ret = date.split('/')[2] + "-" + date.split('/')[1] + "-" + date.split('/')[0] + "T00:00:00.00Z"
 
     return ret
+
+##### dossiers ######
+s_stockage = "files"
+s_dossier_ign = "IGN"
+s_dossier_osm = "OSM"
+#####################
 
 if __name__ == "__main__":
     # on commence par récupérer les arguments :
@@ -46,43 +48,44 @@ if __name__ == "__main__":
         for row in o_reader:
             # Num_photo;Lat;Lon;Titre;Sujet;Auteur;Licence;Date_photo;Url_photo;Url_site
             # 93407;48.932294;7.951462;"HOFFEN - (Abri)";;"wikimaginot - Gregory Fuchs";CC-BY-SA;07/06/2019;https://files-wikimaginot.eu/_documents/2021-03/_wiki_photos_redim/63-1616490496.jpg;https://wikimaginot.eu/V70_construction_detail.php?id=10961
+            #print("-")
 
             # num photo
             s_num = row['Num_photo']
             # vérif licence
             if row['Licence'] not in ['Domaine public','CC-O','CC-BY','CC-BY-SA']:
-                print(f"erreur, Licence vide pour {s_num} !")
+                print(f"erreur, Licence vide pour photo {s_num} !")
                 continue
             if row['Licence'] in ['Domaine public','CC-O']:
                 s_dossier = s_dossier_ign
             else:
                 s_dossier = s_dossier_osm
             # vérif id
-            s_id = ""
+            s_id_seq = ""
             if "?id=" in row['Url_site']:
-                s_id = row['Url_site'][row['Url_site'].find("?id=")+4:]
-            if s_id == "":
-                print(f"erreur, id vide pour {s_num} !")
+                s_id_seq = row['Url_site'][row['Url_site'].find("?id=")+4:]
+            if s_id_seq == "":
+                print(f"erreur, id vide pour photo {s_num} !")
                 continue
             # vérif lat,lon,titre,url_photo
             if row['Lat'] == "":
-                print(f"erreur, Lat vide pour {s_num} !")
+                print(f"erreur, Lat vide pour photo {s_num} !")
                 continue
             if row['Lon'] == "":
-                print(f"erreur, Lon vide pour {s_num} !")
+                print(f"erreur, Lon vide pour photo {s_num} !")
                 continue
             if row['Titre'] == "":
-                print(f"erreur, Titre vide pour {s_num} !")
+                print(f"erreur, Titre vide pour photo {s_num} !")
                 continue
             if row['Url_photo'] == "":
-                print(f"erreur, Url_photo vide pour {s_num} !")
+                print(f"erreur, Url_photo vide pour photo {s_num} !")
                 continue
             s_url = row['Url_photo']
             s_name_photo = ""
             if s_url.find('/'):
                 s_name_photo = s_url.split('/')[-1]
             if s_name_photo == "":
-                print(f"erreur, nom de photo vide pour {s_num} !")
+                print(f"erreur, nom de photo vide pour photo {s_num} !")
                 continue
             # auteur
             s_auteur = ""
@@ -95,23 +98,17 @@ if __name__ == "__main__":
             s_date = gestion_date(s_raw_date, s_url)
 
             # photo
-            s_local_dossier = s_local_files + s_dossier + "/" + s_id + "/"
+            s_local_dossier = s_local_files + s_dossier + "/" + s_id_seq + "/"
             p_local_photo = Path(s_local_dossier)
             if not p_local_photo.exists():
                 p_local_photo.mkdir(parents = True)
             s_local_photo = s_local_dossier + s_name_photo
 
             # récapitulatif :
-            #print(f"{row['Licence']}, {s_dossier}, {s_id}, {s_name_photo}, {s_local_photo}")
+            #print(f"{row['Licence']}, {s_dossier}, {s_id_seq}, {s_name_photo}, {s_local_photo}")
             #print(f"titre : {row['Titre']}")
             ## nom_file;lat;lon;capture_time;Exif.Image.Artist;Xmp.xmp.BaseURL
-            print(f"csv : {s_name_photo}, {row['Lat']}, {row['Lon']}, {s_date}, {s_auteur}, {row['Url_site']}")
-
-            # écriture du titre.txt
-            s_fichier_titre = s_local_dossier + 'titre.txt'
-            if not Path(s_fichier_titre).exists():
-                with open(s_fichier_titre, 'w', encoding='utf-8') as titre_file:
-                    titre_file.write(row['Titre'])
+            print(f"{s_dossier} {s_id_seq} : csv : {s_name_photo}, {row['Lat']}, {row['Lon']}, {s_date}, {s_auteur}, {row['Url_site']}")
 
             # téléchargement de la photo
             print(f"download {s_url} ...")
@@ -123,13 +120,27 @@ if __name__ == "__main__":
                        # On écrit le contenu dedans
                        file.write(request.content)
                else:
-                  print(f"erreur http pour {s_num}, code retour = {request.status_code}, {request.text}")
+                  print(f"erreur http pour {s_dossier} {s_id_seq}, code retour = {request.status_code}")
                   continue
+
+            # écriture du titre.txt
+            s_fichier_titre = s_local_dossier + 'titre.txt'
+            if not Path(s_fichier_titre).exists():
+                with open(s_fichier_titre, 'w', encoding='utf-8') as titre_file:
+                    titre_file.write(row['Titre'])
+                    #print(f"écriture terminée pour {s_fichier_titre}")
 
             # écriture du _geovisio.csv
             with open(s_local_dossier + '_geovisio.csv', 'a', newline='') as csvfile:
-                o_writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_NONNUMERIC)
+                o_writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
                 o_writer.writerow([s_name_photo, row['Lat'], row['Lon'], s_date, s_auteur, row['Url_site']])
 
-            # on saute une ligne et on passe à la photo suivante
-            print("")
+
+    # on va parcourir les dossiers pour envoyer les séquences à la CLI
+    liste_id_seq = []
+    for instance in (s_dossier_ign, s_dossier_osm):
+        liste_id_seq.extend(glob.glob(os.path.join(s_local_files, f"{instance}/*")))
+    if len(liste_id_seq) > 0:
+        liste_id_seq.sort()
+        for i_id in liste_id_seq:
+            print(f" geovisio upload --api-url http://localhost:5000/ {i_id }")
