@@ -6,18 +6,19 @@ import requests
 from pathlib import Path
 
 def gestion_date(date:str, chemin:str) -> str:
-    ret = "1970-01-01T00:00:00.00Z"
+    s_time = "T00:00:00"
+    ret = "1900-01-01" + s_time
     if date == "":
         if chemin.find('/'):
             dossier_date = chemin.split('/')[-3]
             if dossier_date.startswith('20') and len(dossier_date) == 4:
-                ret = dossier_date + "-01-01T00:00:00.00Z"
+                ret = dossier_date + "-01-01" + s_time
             elif dossier_date.startswith('20') and len(dossier_date) == 7:
-                ret = dossier_date + "-01T00:00:00.00Z"
+                ret = dossier_date + "-01" + s_time
             elif dossier_date.startswith('20') and len(dossier_date) == 10:
-                ret = dossier_date + "T00:00:00.00Z"
+                ret = dossier_date + s_time
     elif date.find('/'):
-        ret = date.split('/')[2] + "-" + date.split('/')[1] + "-" + date.split('/')[0] + "T00:00:00.00Z"
+        ret = date.split('/')[2] + "-" + date.split('/')[1] + "-" + date.split('/')[0] + s_time
 
     return ret
 
@@ -107,21 +108,25 @@ if __name__ == "__main__":
             # récapitulatif :
             #print(f"{row['Licence']}, {s_dossier}, {s_id_seq}, {s_name_photo}, {s_local_photo}")
             #print(f"titre : {row['Titre']}")
-            ## nom_file;lat;lon;capture_time;Exif.Image.Artist;Xmp.xmp.BaseURL
+            ## file;lat;lon;capture_time;Exif.Image.Artist;Xmp.xmp.BaseURL
             print(f"{s_dossier} {s_id_seq} : csv : {s_name_photo}, {row['Lat']}, {row['Lon']}, {s_date}, {s_auteur}, {row['Url_site']}")
 
             # téléchargement de la photo
-            print(f"download {s_url} ...")
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'}
-            with requests.get(url=s_url, headers=headers, verify=True, allow_redirects=True, stream=True) as request:
-               if request.status_code == 200:
-                   # On ouvre le fichier de sortie
-                   with open(s_local_photo, 'wb') as file:
-                       # On écrit le contenu dedans
-                       file.write(request.content)
-               else:
-                  print(f"erreur http pour {s_dossier} {s_id_seq}, code retour = {request.status_code}")
-                  continue
+            if not Path(s_local_photo).exists():
+                print(f"download {s_url} ...")
+                headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'}
+                with requests.get(url=s_url, headers=headers, verify=True, allow_redirects=True, stream=True) as request:
+                    if request.status_code == 200:
+                        # On ouvre le fichier de sortie
+                        with open(s_local_photo, 'wb') as file:
+                            # On écrit le contenu dedans
+                            file.write(request.content)
+                    else:
+                        print(f"erreur http pour {s_dossier} {s_id_seq}, code retour = {request.status_code}")
+                        continue
+            else:
+                print(f"photo présente {s_local_photo}")
+                continue
 
             # écriture du titre.txt
             s_fichier_titre = s_local_dossier + 'titre.txt'
@@ -131,8 +136,13 @@ if __name__ == "__main__":
                     #print(f"écriture terminée pour {s_fichier_titre}")
 
             # écriture du _geovisio.csv
+            b_write_first_ligne = True
+            if Path(s_local_dossier + '_geovisio.csv').exists():
+                b_write_first_ligne = False
             with open(s_local_dossier + '_geovisio.csv', 'a', newline='') as csvfile:
                 o_writer = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                if b_write_first_ligne:
+                    o_writer.writerow(["file","lat","lon","capture_time","Exif.Image.Artist","Xmp.xmp.BaseURL"])
                 o_writer.writerow([s_name_photo, row['Lat'], row['Lon'], s_date, s_auteur, row['Url_site']])
 
 
