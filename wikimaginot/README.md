@@ -2,7 +2,7 @@
 
 Ce dépôt porte sur l'import de photos et de métadonnées de https://wikimaginot.eu vers les instances IGN et OSM de panoramax.
 
-## Fichier cvs issu de wikimaginot.eu
+## Fichier cvs exporté de wikimaginot.eu
 
 Le fichier csv comprend 10 colonnes :
 ```
@@ -50,16 +50,11 @@ Dans chaque sous-dossier "id", en plus des photos, on aura 2 fichiers supplémen
 - **_geovisio.csv** : un mini fichier cvs compatible avec la CLI ([format attendu](https://gitlab.com/geovisio/cli/-/blob/main/README.md?ref_type=heads#external-metadata)) qui contiendra les champs suivants :
 
 ```
-nom_file;lat;lon;capture_time;Exif.Image.Artist;Xmp.xmp.BaseURL
-30-1321810396.JPG;49.021719;7.252502;"2011-01-01T00:00:00.00Z";"Christatus";https://wikimaginot.eu/V70_construction_detail.php?id=11631
-63-1623253016.jpg;49.021719;7.252502;"2009-04-05T00:00:00.00Z";"Christatus";https://wikimaginot.eu/V70_construction_detail.php?id=11631
+file;lat;lon;capture_time;Exif.Image.Artist;Xmp.xmp.BaseURL
+30-1321810396.JPG;49.021719;7.252502;"2011-01-01T00:00:00";"Christatus";https://wikimaginot.eu/V70_construction_detail.php?id=11631
+63-1623253016.jpg;49.021719;7.252502;"2009-04-05T00:00:00";"Christatus";https://wikimaginot.eu/V70_construction_detail.php?id=11631
 ```
 
-NB: pour Date_photo, si vide alors prendre la date dans le nom du dossier parent; compléter time avec "T00:00:00.00Z", le jour vide avec "01", le mois vide avec "01".
+NB: pour Date_photo, si vide alors prendre la date dans le nom du dossier parent de Url_photo; compléter un mois vide avec "01", un jour vide avec "01", et le time avec "T00:00:00".
 
-NB: pour Exif.Image.Artist, on enlève le "wikimaginot - " qui commencent chaque champ "Auteur".
-
-
-Pour le titre:
-est ce que l'on place un champ Exif.Image.ImageDescription dans le _geovisio.csv ?
-ou est ce que l'on écrit le titre dans le fichier titre.txt ?
+NB: pour Exif.Image.Artist, on enlève les lettres "wikimaginot - " qui précèdent chaque champ "Auteur".
