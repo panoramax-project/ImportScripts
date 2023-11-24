@@ -5,6 +5,19 @@ import os
 import requests
 from pathlib import Path
 
+##### dossiers ######
+s_stockage = "files"
+s_dossier_ign = "IGN"
+s_dossier_osm = "OSM"
+##### instances #####
+s_instance = "http://localhost:5000/"
+s_token = ""
+s_instance_ign = "https://panoramax.ign.fr"
+s_token_ign = "--token \"toto\" "
+s_instance_osm = "https://panoramax.openstreetmap.fr"
+s_token_osm = "--token \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnZW92aXNpbyIsInN1YiI6ImUzNTdmYzJlLTBkOWEtNGEzOC04MWFmLTBiODkzNjRkNTE4ZiJ9.BxnFHMM13RVG-xN8OpLZ7mH3JvbJzVE33LxmR93FT6g\" "
+#####################
+
 def gestion_date(date:str, chemin:str) -> str:
     s_time = "T00:00:00"
     ret = "1900-01-01" + s_time
@@ -21,12 +34,6 @@ def gestion_date(date:str, chemin:str) -> str:
         ret = date.split('/')[2] + "-" + date.split('/')[1] + "-" + date.split('/')[0] + s_time
 
     return ret
-
-##### dossiers ######
-s_stockage = "files"
-s_dossier_ign = "IGN"
-s_dossier_osm = "OSM"
-#####################
 
 if __name__ == "__main__":
     # on commence par récupérer les arguments :
@@ -147,10 +154,18 @@ if __name__ == "__main__":
 
 
     # on va parcourir les dossiers pour envoyer les séquences à la CLI
-    liste_id_seq = []
-    for instance in (s_dossier_ign, s_dossier_osm):
-        liste_id_seq.extend(glob.glob(os.path.join(s_local_files, f"{instance}/*")))
-    if len(liste_id_seq) > 0:
-        liste_id_seq.sort()
-        for i_id in liste_id_seq:
-            print(f" geovisio upload --api-url http://localhost:5000/ {i_id }")
+    for s_dossier in (s_dossier_ign, s_dossier_osm):
+        if s_dossier == s_dossier_ign:
+            s_instance = s_instance_ign
+            s_token = s_token_ign
+        elif s_dossier == s_dossier_osm:
+            s_instance = s_instance_osm
+            s_token = s_token_osm
+        liste_id_seq = []
+        liste_id_seq.extend(glob.glob(os.path.join(s_local_files, f"{s_dossier}/*")))
+        if len(liste_id_seq) > 0:
+            liste_id_seq.sort()
+            for s_id in liste_id_seq:
+                print(f" geovisio upload {s_token} --title \"$(cat {s_id}/titre.txt)\" --api-url {s_instance} {s_id }")
+        else:
+            print(f"erreur, aucun dossier-séquence pour {s_dossier} !")
