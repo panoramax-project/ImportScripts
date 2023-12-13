@@ -15,9 +15,9 @@ s_dossier_osm = "OSM"
 s_instance = "http://localhost:5000/"
 s_token = ""
 s_instance_ign = "https://panoramax.ign.fr"
-s_token_ign = "--token \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnZW92aXNpbyIsInN1YiI6ImUxOWRiMTM3LTI3ZGMtNDJlNy1iZWZlLWRhMTg5YzQwNzFjNSJ9.0Wcv1ObVysSmBrsJDP_JxgEOx0NAdtC1okKyhcPC3Bk\" "
+s_token_ign = "--token \"token_ign\" "
 s_instance_osm = "https://panoramax.openstreetmap.fr"
-s_token_osm = "--token \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnZW92aXNpbyIsInN1YiI6ImUzNTdmYzJlLTBkOWEtNGEzOC04MWFmLTBiODkzNjRkNTE4ZiJ9.BxnFHMM13RVG-xN8OpLZ7mH3JvbJzVE33LxmR93FT6g\" "
+s_token_osm = "--token \"token_osm\" "
 #####################
 
 
