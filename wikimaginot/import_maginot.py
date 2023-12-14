@@ -82,7 +82,7 @@ if __name__ == "__main__":
             if s_id_seq == "":
                 print(f"erreur, id vide pour photo {s_num} !")
                 continue
-            # vérif lat,lon,titre,url_photo
+            # vérif lat,lon,titre
             if row['Lat'] == "":
                 print(f"erreur, Lat vide pour photo {s_num} !")
                 continue
@@ -92,6 +92,7 @@ if __name__ == "__main__":
             if row['Titre'] == "":
                 print(f"erreur, Titre vide pour photo {s_num} !")
                 continue
+            # vérif photo
             if row['Url_photo'] == "":
                 print(f"erreur, Url_photo vide pour photo {s_num} !")
                 continue
@@ -102,7 +103,10 @@ if __name__ == "__main__":
             if s_name_photo == "":
                 print(f"erreur, nom de photo vide pour photo {s_num} !")
                 continue
-            # TODO vérifier que ce n'est pas une png
+            # on vérifie que ce n'est pas une png
+            if s_name_photo.lower().endswith(".png"):
+                print(f"erreur, la photo est une PNG pour {s_num} !")
+                continue
 
             # vérif date
             s_raw_date = row['Date_photo']
@@ -119,24 +123,19 @@ if __name__ == "__main__":
             else:
                 s_auteur = row['Auteur']
             # on vérifie que Google n'est pas dans le champ
-            if "Google" in s_auteur or "google" in s_auteur:
-                print(f"suppression de {s_local_photo}")
+            if "google" in s_auteur.lower():
+                print(f"erreur, photo Google, on passe pour {s_num} !")
                 if Path(s_local_photo).exists():
                     os.remove(s_local_photo)
                 continue
 
-            # est ce que le fichier _geovisio.toml existe ?
-            # si oui, on a déjà downloadé la photo, on passe à la suivante
-            ###if Path(s_local_dossier + '_geovisio.toml').exists():
-            ###    print(f"{s_local_dossier} déjà fait.")
-            ###    continue
 
             # récapitulatif :
-            # print(f"{row['Licence']}, {s_dossier}, {s_id_seq}, {s_name_photo}, {s_local_photo}")
             # entête du csv : file;lat;lon;capture_time;Exif.Image.Artist;Xmp.xmp.BaseURL
-            print(f"{s_dossier} {s_id_seq} : csv : {s_name_photo}, {row['Lat']}, {row['Lon']}, {s_date}, {s_auteur}, {row['Url_site']}")
+            # print(f"{row['Licence']}, {s_dossier}, {s_id_seq}, {s_name_photo}, {s_local_photo}")
+            print(f"{s_dossier} {s_id_seq} : le csv sera : {s_name_photo}, {row['Lat']}, {row['Lon']}, {s_date}, {s_auteur}, {row['Url_site']}")
 
-            # téléchargement de la photo
+            # 1.A téléchargement de la photo
             if not Path(s_local_photo).exists():
                 print(f"download {s_url} ...")
                 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36'}
@@ -154,17 +153,17 @@ if __name__ == "__main__":
                     else:
                         print(f"erreur http pour {s_dossier} {s_id_seq}, code retour = {request.status_code}")
                         continue
-            ###else:
-                ###print(f"photo présente {s_local_photo}")
+            #else:
+                #print(f"photo présente {s_local_photo}")
 
-            # écriture du titre.txt
+            # 1.B écriture du titre.txt
             s_fichier_titre = s_local_dossier + 'titre.txt'
             if not Path(s_fichier_titre).exists():
                 with open(s_fichier_titre, 'w', encoding='utf-8') as titre_file:
                     titre_file.write(row['Titre'])
                     #print(f"écriture terminée pour {s_fichier_titre}")
 
-            # écriture du _geovisio.csv
+            # 1.C écriture du _geovisio.csv
             b_write_first_ligne = True
             if Path(s_local_dossier + '_geovisio.csv').exists():
                 b_write_first_ligne = False
